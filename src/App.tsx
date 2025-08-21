@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface TicketFeedbackInfo {
   ticket_number: number;
@@ -15,20 +15,27 @@ interface TicketRatingUpdate {
 }
 
 function App() {
-  const [ticketNumber, setTicketNumber] = useState("");
   const [ticketInfo, setTicketInfo] = useState<TicketFeedbackInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [rating, setRating] = useState<TicketRatingUpdate["rating"] | null>(null);
   const [feedback, setFeedback] = useState("");
   const [message, setMessage] = useState("");
 
-  const API_BASE = "https://detect-seat-we21.onrender.com/app/tickets"; // chỉnh URL backend của bạn
+  const API_BASE = "https://detect-seat-we21.onrender.com/app/tickets";
+
+  // lấy query param từ URL
+  const params = new URLSearchParams(window.location.search);
+  const ticketNumber = params.get("ticket_number");
+  const tenxa = params.get("tenxa");
 
   const fetchTicketInfo = async () => {
-    if (!ticketNumber) return;
+    if (!ticketNumber || !tenxa) {
+      setMessage("Thiếu thông tin vé.");
+      return;
+    }
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/${ticketNumber}/feedback?tenxa=phuongtanphong`);
+      const res = await fetch(`${API_BASE}/${ticketNumber}/feedback?tenxa=${tenxa}`);
       if (!res.ok) throw new Error("Không tìm thấy vé hoặc vé chưa hoàn tất");
       const data = await res.json();
       setTicketInfo(data);
@@ -42,10 +49,10 @@ function App() {
   };
 
   const submitFeedback = async () => {
-    if (!ticketNumber || !rating) return;
+    if (!ticketNumber || !tenxa || !rating) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/${ticketNumber}/feedback?tenxa=phuongtanphong`, {
+      const res = await fetch(`${API_BASE}/${ticketNumber}/feedback?tenxa=${tenxa}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rating, feedback }),
@@ -61,28 +68,14 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    fetchTicketInfo();
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       <div className="bg-white shadow-md rounded-2xl p-6 w-full max-w-md">
         <h1 className="text-xl font-bold mb-4">Đánh giá dịch vụ</h1>
-
-        {/* Nhập số vé */}
-        <div className="flex gap-2 mb-4">
-          <input
-            type="number"
-            placeholder="Nhập số vé..."
-            value={ticketNumber}
-            onChange={(e) => setTicketNumber(e.target.value)}
-            className="border rounded-lg px-3 py-2 w-full"
-          />
-          <button
-            onClick={fetchTicketInfo}
-            disabled={loading}
-            className="bg-blue-600 text-white rounded-lg px-4 py-2"
-          >
-            Xem
-          </button>
-        </div>
 
         {loading && <p>Đang tải...</p>}
 
